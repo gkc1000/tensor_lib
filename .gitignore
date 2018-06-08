@@ -1,0 +1,16 @@
+*.o
+*.a
+*.so
+*.dylib
+*.tmp
+
+# python bitcode
+*.pyc
+
+# vi temp file
+*.swp
+
+# latex temp file
+*.aux
+*.dvi
+*.log
