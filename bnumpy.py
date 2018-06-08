@@ -1,73 +1,49 @@
-import numpy
+import numpy as np
+import pyscf.lib
 
-class bndarray(object):
-    def __init__(self,shape,block_shape,storage=None):
-        self.shape=shape
-        self.block_shape=block_shape
+def shape_from_lens(block_lens):
+    shape = [len(x) for x in block_lens]
+    prod_lens = pyscf.lib.cartesian_prod(block_lens)
+    return np.reshape(pyscf.lib.cartesian_prod(block_lens),
+                      shape + [prod_lens.shape[1]])
 
-        # example: blocked matrix
-        # shape=(3,6)
-        # block_shape=((2,4,5),(1,1,4,0,5,6))
-        # npshape=(11,17)
-        _npshape=npshape(shape, block_shape)
+def lens_from_shape(block_shape):
+    pass
+    
+class bndarray(np.ndarray):
+    def __new__(subtype, block_shape, block_dtype=float):
+        shape = block_shape.shape
+        obj = np.ndarray.__new__(subtype, shape, dtype=np.object)
+        obj.block_shape = block_shape
+        obj.block_dtype = block_dtype
         
-        if storage is not None:
-            self.storage=storage
+        for ix in np.ndindex(shape):
+            obj[ix] = np.empty(block_shape[ix], block_dtype)
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
         else:
-            self.storage=numpy.empty(_npshape)
+            for ix in np.ndindex(obj.shape):
+                self.block_shape=obj[ix].shape
 
-    def __setitem__(self,block_index,item):
-        self.storage[npindex(block_index,self.block_shape)]=item
-        
-    def __getitem__(self,block_index):
-        return self.storage[npindex(block_index,self.block_shape)]
+def zeros(block_lens, dtype=float):
+    block_shape = make_block_shape(block_lens)
+    obj = bndarray(block_shape, dtype)
+    for ix in np.ndindex(obj.shape):
+        obj[ix] = np.zeros(obj.block_shape[ix], dtype)
+    return obj
 
-def npindex(block_index, block_shape):
-    """
-    # example: blocked matrix
-    shape=(3,6)
-    block_shape=((2,4,5),(1,1,4,0,5,6))
-    bindex=(0,0)
-    assert bnumpy.npindex(bindex, block_shape)==(slice(0,2),slice(0,1))
-    bindex=(1,2)
-    assert bnumpy.npindex(bindex, block_shape)==(slice(2,4),slice(2,6))
-    """
-    _npindex=[None]*len(block_index)
-    for i in range(len(block_index)):
-        bstart=sum(block_shape[i][:block_index[i]])
-        bstop=bstart+block_shape[i][block_index[i]]
-        _npindex[i]=slice(bstart,bstop)
-    return tuple(_npindex)
-    
-def npshape(shape, block_shape):
-    _npshape = [None]*len(shape)
-    for i in range(len(shape)):
-        _npshape[i]=sum(block_shape[i])
-    return tuple(_npshape)
+def eye(block_N, dtype=float):
+    block_shape = make_block_shape([block_N,block_N])
+    obj = bndarray(block_shape, dtype)
+    for i in range(obj.shape[0]):
+        obj[i,i] = np.eye(obj.block_shape[i,i], dtype)
+    return obj
 
-def asarray(ba):
-    return ba.storage
+def npshape(block_shape):
+    block_lens=
 
-def asbarray(a, shape, block_shape):
-    return bndarray(shape, block_shape, a)
-
-def zeros(shape, block_shape):
-    _npshape=npshape(shape, block_shape)
-    return bndarray(shape, block_shape, numpy.zeros(_npshape))
-    
-def eye(N, block_N):
-    """
-    # example: blocked matrix
-    N=4
-    block_N=(3,1,2,0)
-    shape=(4,4)
-    block_shape=((3,1,2,0),(3,1,2,0))
-    assert npshape=(6,6)
-    """
-    shape=[N,N]
-    block_shape=(block_N,block_N)
-    ba=zeros(shape,block_shape)
-
-    for i in range(ba.shape[0]):
-        ba[i,i]=numpy.eye(ba.block_shape[0][i])
-    return ba
+def asndarray(ba):
+    pass
