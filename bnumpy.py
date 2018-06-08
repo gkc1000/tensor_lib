@@ -12,7 +12,7 @@ def lens_from_shape(block_shape):
     
 class bndarray(np.ndarray):
     def __new__(subtype, block_shape, block_dtype=float):
-        shape = block_shape.shape
+        shape = block_shape.shape[:-1]
         obj = np.ndarray.__new__(subtype, shape, dtype=np.object)
         obj.block_shape = block_shape
         obj.block_dtype = block_dtype
