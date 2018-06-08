@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 
 import numpy
-import bnumpy
+import bnumpy2 as bnumpy
 
 def test_eye():
-    a0 = numpy.eye(4)
-    a1 = bnumpy.eye(4,(1,1,1,1))
-    assert numpy.allclose(a0,bnumpy.asarray(a1))
+    print "--------------"
+    a0 = numpy.eye(8)
+    a1 = bnumpy.eye(4,2)
+    print "--------------"
+    print a0
+    print bnumpy.asndarray(a1)
+    assert numpy.allclose(a0,bnumpy.asndarray(a1))
 
 # def test_zeros(self):
 #     a1 = ctf.zeros((2,3,4))
@@ -323,3 +327,5 @@ def test_eye():
 #     self.assertTrue(ctf.hstack((a1, a2)).shape == (2,9,2))
 
 
+if __name__=="__main__":
+    test_eye()

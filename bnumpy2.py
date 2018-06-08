@@ -6,10 +6,10 @@ class bndarray(np.ndarray):
         if len(shape)!=len(block_shape):
             raise RuntimeError
         obj = np.ndarray.__new__(subtype, shape, dtype=np.object)
-        obj.block_shape = block_shape
+        obj.block_shape = tuple(block_shape)
         obj.block_dtype = block_dtype
 
-        for ix in np.ndindex(shape):
+        for ix in np.ndindex(obj.shape):
             obj[ix]=np.empty(block_shape, dtype=block_dtype)
         return obj
 
@@ -32,11 +32,12 @@ def zeros(shape, block_shape, dtype=float):
         obj[ix] = np.zeros(obj.block_shape, dtype)
     return obj
 
-def eye(N, block_shape, dtype=float):
+def eye(N, block_N, dtype=float):
     shape = [N, N]
-    obj = bndarray(shape, block_shape, dtype)
+    block_shape = [block_N, block_N]
+    obj = zeros(shape, block_shape, dtype)
     for i in range(obj.shape[0]):
-        obj[i,i] = np.eye(block_shape, dtype)
+        obj[i,i] = np.eye(block_N, dtype=dtype)
     return obj
 
 def asndarray(ba):
@@ -50,11 +51,11 @@ def asndarray(ba):
     return a
     
 
-if __name__ == '__main__':
 
 
-    print "\nmain program\n"
-    a = bndarray((3,1,2), (2,2,2)) 
-    print a
-    print asndarray(a)
+# if __name__ == '__main__':
+#     print "\nmain program\n"
+#     a = bndarray((3,1,2), (2,2,2)) 
+#     print a
+#     print asndarray(a)
 
