@@ -8,6 +8,8 @@ def shape_from_lens(block_lens):
                       shape + [prod_lens.shape[1]])
 
 def lens_from_shape(block_shape):
+    
+
     pass
     
 class bndarray(np.ndarray):
@@ -42,8 +44,8 @@ def eye(block_N, dtype=float):
         obj[i,i] = np.eye(obj.block_shape[i,i], dtype)
     return obj
 
-def npshape(block_shape):
-    block_lens=
+#def npshape(block_shape):
+#    block_lens=
 
 def asndarray(ba):
     pass
