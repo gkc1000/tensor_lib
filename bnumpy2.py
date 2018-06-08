@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+import numpy as np
+
 class bndarray(np.ndarray):
     def __new__(subtype, shape, block_shape, block_dtype=float):
         if len(shape)!=len(block_shape):
@@ -14,7 +17,8 @@ class bndarray(np.ndarray):
         if obj is None:
             return
         else:
-            raise RuntimeError
+            self.block_shape = obj.block_shape
+            self.block_dtype = obj.block_dtype
 
     def transpose(self, axes=None):
         obj = np.ndarray.transpose(self, axes)
@@ -36,13 +40,21 @@ def eye(N, block_shape, dtype=float):
     return obj
 
 def asndarray(ba):
-    shape = ba.shape * ba.block_shape
+    shape = np.multiply(ba.shape, ba.block_shape)
     a = np.empty(shape, dtype=ba.block_dtype)
-    for ix in np.ndindex(shape):
-        start = ix * ba.block_shape
-        end = start + ba.block_shape
+    for ix in np.ndindex(ba.shape):
+        start = np.multiply(ix, ba.block_shape)
+        end = np.add(start , ba.block_shape)
         slices = [slice(s,e) for (s,e) in zip(start,end)]
         a[slices] = ba[ix]
     return a
     
+
+if __name__ == '__main__':
+
+
+    print "\nmain program\n"
+    a = bndarray((3,1,2), (2,2,2)) 
+    print a
+    print asndarray(a)
 
