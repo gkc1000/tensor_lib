@@ -28,11 +28,10 @@ class bndarray(np.ndarray):
         return obj
         
     def transpose(self, axes=None):
-        obj = np.ndarray.transpose(self, axes)
+        obj = self.copy()
+        obj = np.ndarray.transpose(obj, axes)
         if axes == None:
             obj.block_shape = self.block_shape[::-1]
-            print obj.block_shape
-            #exit()
         else:
             obj.block_shape = self.block_shape[axes]
         
@@ -54,12 +53,20 @@ def eye(N, block_N, dtype=float):
         obj[i,i] = np.eye(block_N, dtype=dtype)
     return obj
 
+# should be in bnumpy/random
+def random(shape, block_shape, dtype=float):
+    obj = bndarray(shape, block_shape, dtype)
+    for ix in np.ndindex(obj.shape):
+        obj[ix] = np.random.random(obj.block_shape)
+    return obj
+    
+    
 def asndarray(ba):
     shape = np.multiply(ba.shape, ba.block_shape)
     a = np.empty(shape, dtype=ba.block_dtype)
     for ix in np.ndindex(ba.shape):
         start = np.multiply(ix, ba.block_shape)
-        end = np.add(start , ba.block_shape)
+        end = np.add(start, ba.block_shape)
         slices = [slice(s,e) for (s,e) in zip(start,end)]
         a[slices] = ba[ix]
     return a
@@ -70,11 +77,20 @@ def asndarray(ba):
 def test():
      print "\nmain program\n"
      #a = bndarray((3,1,2), (2,4,7)) 
-     a = bndarray((1,2), (2,4)) 
-     print a.shape
-     print a.transpose().shape
-     print asndarray(a).shape
+     #a = bndarray((1,2), (2,4))
+     a = random((1,2), (2,4))
+     b = a.transpose()
+     
      print asndarray(a.transpose()).shape
+     print asndarray(b).shape
+     print asndarray(a).transpose().shape
+
+     at = asndarray(a).transpose()
+     print np.allclose(at,asndarray(b))
+     
+     #print a.transpose().shape
+     #print asndarray(a).shape
+     
 
 if __name__ == '__main__':
      test()

@@ -47,11 +47,12 @@ def einsum(idx_str, *tensors, **kwargs):
         return einsum(",".join(indices_in)+"->"+idx_final,*tensors)
 
     A, B = tensors
+    
     # Call numpy.asarray because A or B may be HDF5 Datasets 
-    A = numpy.asarray(A, order='A')
-    B = numpy.asarray(B, order='A')
-    if A.size < 2000 or B.size < 2000:
-        return numpy.einsum(idx_str, *tensors)
+    # A = numpy.asarray(A, order='A')
+    # B = numpy.asarray(B, order='A')
+    # if A.size < 2000 or B.size < 2000:
+    #     return numpy.einsum(idx_str, *tensors)
 
     # Split the strings into a list of idx char's
     idxA, idxBC = idx_str.split(',')
@@ -69,14 +70,19 @@ def einsum(idx_str, *tensors, **kwargs):
     # Get the range for each index and put it in a dictionary
     rangeA = dict()
     rangeB = dict()
-    #rangeC = dict()
+    block_rangeA = dict()
+    block_rangeB = dict()
+    
     for idx,rnge in zip(idxA,A.shape):
         rangeA[idx] = rnge
     for idx,rnge in zip(idxB,B.shape):
         rangeB[idx] = rnge
-    #for idx,rnge in zip(idxC,C.shape):
-    #    rangeC[idx] = rnge
+    for idx,rnge in zip(idxA,A.block_shape):
+        block_rangeA[idx] = rnge
+    for idx,rnge in zip(idxB,B.block_shape):
+        block_rangeB[idx] = rnge
 
+        
     if DEBUG:
         print("rangeA =", rangeA)
         print("rangeB =", rangeB)
@@ -88,6 +94,7 @@ def einsum(idx_str, *tensors, **kwargs):
     idxAt = list(idxA)
     idxBt = list(idxB)
     inner_shape = 1
+    block_inner_shape = 1
     insert_B_loc = 0
     for n in shared_idxAB:
         if rangeA[n] != rangeB[n]:
@@ -106,6 +113,7 @@ def einsum(idx_str, *tensors, **kwargs):
         insert_B_loc += 1
 
         inner_shape *= rangeA[n]
+        block_inner_shape *= block_rangeA[n]
 
     if DEBUG:
         print("shared_idxAB =", shared_idxAB)
@@ -122,43 +130,47 @@ def einsum(idx_str, *tensors, **kwargs):
         print("Reshaping B as (", inner_shape, ",-1)")
 
     shapeCt = list()
+    block_shapeCt = list()
     idxCt = list()
     for idx in idxAt:
         if idx in shared_idxAB:
             break
         shapeCt.append(rangeA[idx])
+        block_shapeCt.append(block_rangeA[idx])
         idxCt.append(idx)
     for idx in idxBt:
         if idx in shared_idxAB:
             continue
         shapeCt.append(rangeB[idx])
+        block_shapeCt.append(block_rangeB[idx])
         idxCt.append(idx)
     new_orderCt = [idxCt.index(idx) for idx in idxC]
 
     if A.size == 0 or B.size == 0:
         shapeCt = [shapeCt[i] for i in new_orderCt]
-        return numpy.zeros(shapeCt, dtype=numpy.result_type(A,B))
+        block_shapeCt = [block_shapeCt[i] for i in new_orderCt]
+        return bnumpy.zeros(shapeCt, block_shapeCt,
+                            block_dtype=numpy.result_type(A.block_dtype,B.block_dtype))
 
     At = A.transpose(new_orderA)
     Bt = B.transpose(new_orderB)
 
     if At.flags.f_contiguous:
-        At = numpy.asarray(At.reshape(-1,inner_shape), order='F')
+        At = numpy.asarray(At.reshape((-1,inner_shape), (-1,block_inner_shape)), order='F')
     else:
-        At = numpy.asarray(At.reshape(-1,inner_shape), order='C')
+        At = numpy.asarray(At.reshape((-1,inner_shape), (-1,block_inner_shape)), order='C')
     if Bt.flags.f_contiguous:
-        Bt = numpy.asarray(Bt.reshape(inner_shape,-1), order='F')
+        Bt = numpy.asarray(Bt.reshape((inner_shape,-1), (-1,block_inner_shape)), order='F')
     else:
-        Bt = numpy.asarray(Bt.reshape(inner_shape,-1), order='C')
+        Bt = numpy.asarray(Bt.reshape((inner_shape,-1), (-1,block_inner_shape)), order='C')
 
-    return dot(At,Bt).reshape(shapeCt, order='A').transpose(new_orderCt)
+    return dot(At,Bt).reshape(shapeCt, block_shapeCt, order='A').transpose(new_orderCt)
 
 def dot(a, b, alpha=1, c=None, beta=0):
-    a_lens = bnumpy.lens_from_shape(a.block_shape)
-    b_lens = bnumpy.lens_from_shape(b.block_shape)
-    ab_lens = [a_lens[0], b_lens[1]]
-    
-    ab = bnumpy.zeros(ab_lens)
+    ab_shape = (a.shape[0], b.shape[1])
+    ab_block_shape = (a.block_shape[0], b.block_shape[1])
+                           
+    ab = bnumpy.zeros(ab_shape, ab_block_shape)
     
     for i in range(a.shape[0]):
         for j in range(a.shape[0]):
