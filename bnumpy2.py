@@ -29,8 +29,15 @@ class bndarray(np.ndarray):
         
     def transpose(self, axes=None):
         obj = np.ndarray.transpose(self, axes)
-        for ix in np.nditer(obj, op_flags='readwrite'):
-            ix[...] = ix.transpose(axes)
+        if axes == None:
+            obj.block_shape = self.block_shape[::-1]
+            print obj.block_shape
+            #exit()
+        else:
+            obj.block_shape = self.block_shape[axes]
+        
+        for ix in np.ndindex(obj.shape):
+            obj[ix] = obj[ix].transpose(axes)
         return obj
 
 def zeros(shape, block_shape, dtype=float):
@@ -60,9 +67,14 @@ def asndarray(ba):
 
 
 
-# if __name__ == '__main__':
-#     print "\nmain program\n"
-#     a = bndarray((3,1,2), (2,2,2)) 
-#     print a
-#     print asndarray(a)
+def test():
+     print "\nmain program\n"
+     #a = bndarray((3,1,2), (2,4,7)) 
+     a = bndarray((1,2), (2,4)) 
+     print a.shape
+     print a.transpose().shape
+     print asndarray(a).shape
+     print asndarray(a.transpose()).shape
 
+if __name__ == '__main__':
+     test()
