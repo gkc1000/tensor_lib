@@ -20,6 +20,13 @@ class bndarray(np.ndarray):
             self.block_shape = obj.block_shape
             self.block_dtype = obj.block_dtype
 
+    def reshape(self, newshape, block_shape=None):
+        obj=np.reshape(self, newshape)
+        if block_shape is not None:
+            for ix in np.ndindex(obj.shape):
+                obj[ix] = np.reshape(obj[ix], block_shape)
+        return obj
+        
     def transpose(self, axes=None):
         obj = np.ndarray.transpose(self, axes)
         for ix in np.nditer(obj, op_flags='readwrite'):
