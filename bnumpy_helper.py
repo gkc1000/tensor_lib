@@ -1,5 +1,6 @@
-import numpy
-
+import numpy as np
+import bnumpy2 as bnumpy
+import re
 # Copied from pyscf.lib.einsum,
 # to avoid importing tblis_einsum
 # in pyscf.lib.numpy_helper.py
@@ -155,14 +156,14 @@ def einsum(idx_str, *tensors, **kwargs):
     At = A.transpose(new_orderA)
     Bt = B.transpose(new_orderB)
 
-    if At.flags.f_contiguous:
-        At = numpy.asarray(At.reshape((-1,inner_shape), (-1,block_inner_shape)), order='F')
-    else:
-        At = numpy.asarray(At.reshape((-1,inner_shape), (-1,block_inner_shape)), order='C')
-    if Bt.flags.f_contiguous:
-        Bt = numpy.asarray(Bt.reshape((inner_shape,-1), (-1,block_inner_shape)), order='F')
-    else:
-        Bt = numpy.asarray(Bt.reshape((inner_shape,-1), (-1,block_inner_shape)), order='C')
+    # if At.flags.f_contiguous:
+    #     At = numpy.asarray(At.reshape((-1,inner_shape), (-1,block_inner_shape)), order='F')
+    # else:
+    At = At.reshape((-1,inner_shape), (-1,block_inner_shape))
+    # if Bt.flags.f_contiguous:
+    #     Bt = numpy.asarray(Bt.reshape((inner_shape,-1), (block_inner_shape,-1)), order='F')
+    # else:
+    Bt = Bt.reshape((inner_shape,-1), (block_inner_shape,-1))
 
     return dot(At,Bt).reshape(shapeCt, block_shapeCt, order='A').transpose(new_orderCt)
 
@@ -173,7 +174,7 @@ def dot(a, b, alpha=1, c=None, beta=0):
     ab = bnumpy.zeros(ab_shape, ab_block_shape)
     
     for i in range(a.shape[0]):
-        for j in range(a.shape[0]):
+        for j in range(a.shape[1]):
             for k in range(b.shape[1]):
                 ab[i,k] += np.dot(a[i,j],b[j,k]) * alpha
 

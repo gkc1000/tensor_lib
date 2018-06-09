@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
+import bnumpy_helper
 
 class bndarray(np.ndarray):
     def __new__(subtype, shape, block_shape, block_dtype=float):
@@ -20,11 +21,11 @@ class bndarray(np.ndarray):
             self.block_shape = obj.block_shape
             self.block_dtype = obj.block_dtype
 
-    def reshape(self, newshape, block_shape=None):
-        obj=np.reshape(self, newshape)
+    def reshape(self, newshape, block_shape=None, order='C'):
+        obj=np.ndarray.reshape(self, newshape, order=order)
         if block_shape is not None:
             for ix in np.ndindex(obj.shape):
-                obj[ix] = np.reshape(obj[ix], block_shape)
+                obj[ix] = np.reshape(obj[ix], block_shape, order=order)
         return obj
         
     def transpose(self, axes=None):
@@ -33,7 +34,7 @@ class bndarray(np.ndarray):
         if axes == None:
             obj.block_shape = self.block_shape[::-1]
         else:
-            obj.block_shape = self.block_shape[axes]
+            obj.block_shape = tuple(np.array(self.block_shape)[axes])
         
         for ix in np.ndindex(obj.shape):
             obj[ix] = obj[ix].transpose(axes)
@@ -60,7 +61,6 @@ def random(shape, block_shape, dtype=float):
         obj[ix] = np.random.random(obj.block_shape)
     return obj
     
-    
 def asndarray(ba):
     shape = np.multiply(ba.shape, ba.block_shape)
     a = np.empty(shape, dtype=ba.block_dtype)
@@ -71,23 +71,35 @@ def asndarray(ba):
         a[slices] = ba[ix]
     return a
     
-
-
-
 def test():
      print "\nmain program\n"
      #a = bndarray((3,1,2), (2,4,7)) 
      #a = bndarray((1,2), (2,4))
-     a = random((1,2), (2,4))
-     b = a.transpose()
+     a = random((3,5), (2,5))
+     b = random((5,2), (5,2))
+     #b = a.transpose()
      
-     print asndarray(a.transpose()).shape
-     print asndarray(b).shape
-     print asndarray(a).transpose().shape
+     # print asndarray(a.transpose()).shape
+     # print asndarray(b).shape
+     # print asndarray(a).transpose().shape
 
-     at = asndarray(a).transpose()
-     print np.allclose(at,asndarray(b))
+     # at = asndarray(a).transpose()
+     # print np.allclose(at,asndarray(b))
+
+     einsum = bnumpy_helper.einsum
+
+     c= einsum("ij,jk->ik", a,b)
+     A = asndarray(a)
+     B = asndarray(b)
+     C = asndarray(c)
+
+     elemC = np.einsum("ij,jk->ik", A, B)
      
+     print np.allclose(elemC, C)
+     # print "block c"
+     # print c.dtype
+     # print "float C"
+     # print C.dtype
      #print a.transpose().shape
      #print asndarray(a).shape
      
